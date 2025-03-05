@@ -2,15 +2,29 @@
 let priceChart;
 
 // Date parser to convert strings to date objects
-let parseDate = d3.timeParse("%b-%Y");
+let parseDateSub = d3.timeParse("%b-%Y"); // parser for streaming_service.csv
+let parseDateTicket = d3.timeParse("%Y"); // parser for ticket_prices.csv
 
-// Start application by loading the data
-// Load streaming_service.csv
-d3.csv("./data/streaming_service.csv", row => {
-    row.date = parseDate(row.date);
-    row.price = +row.price;
+// Start application by loading the data using promises
+let promises = [
+    d3.csv("./data/streaming_service.csv", row => {
+        row.date = parseDateSub(row.date);
+        row.price = +row.price;
 
-    return row;
-}).then(data => {
-    priceChart = new PriceChart("price-chart", data);
-});
+        return row;
+    }),
+    d3.csv("./data/ticket_prices.csv", row => {
+        row.year = parseDateTicket(row.year);
+        row.price = +row.price;
+
+        return row;
+    })
+]
+
+Promise.all(promises)
+    .then(function(data) {
+        let subscriptionData = data[0];
+        let ticketData = data[1]
+
+        priceChart = new PriceChart("price-chart", subscriptionData, ticketData);
+    });
