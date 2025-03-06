@@ -82,21 +82,24 @@ class PriceChart {
 
         // Make ticketData into a format which can be added to vis.displayData
         let ticketFormatted = [];
+        let [minDate, maxDate] = d3.extent(vis.streamingData, d => d.date);
 
         for (let data of vis.ticketData) {
-            let tempObj = {
-                service: "Ticket",
-                date: data.year,
-                price: data.price
-            };
-
-            ticketFormatted.push(tempObj);
+            // Only include data that's within the vis.x domain
+            if (data.year >= minDate && data.year <= maxDate) {
+                let tempObj = {
+                    service: "Ticket",
+                    date: data.year,
+                    price: data.price
+                };
+    
+                ticketFormatted.push(tempObj);
+            }
         }
 
         // Add the ticket data to displayData
         vis.displayData.set('Ticket', ticketFormatted)
         vis.services.push("Ticket");
-        console.log(vis.services);
 
         // Update the visualization
         vis.updateVis();
