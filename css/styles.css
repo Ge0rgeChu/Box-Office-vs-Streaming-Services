@@ -212,3 +212,10 @@ footer {
     transform: scale(1.4);
 }
 
+text.price-label {
+    font-size: 12px;
+}
+
+text {
+    fill:white
+}

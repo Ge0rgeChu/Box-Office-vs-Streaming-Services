@@ -6,8 +6,16 @@
     <title>Box Office vs Streaming</title>
     <link rel="stylesheet" href="css/styles.css">
     <script src="https://d3js.org/d3.v6.min.js"></script>
-    <script defer src="js/script.js"></script>
+
+    <!-- Visualization objects -->
+    <script defer src="js/price.js"></script>
     <script defer src="js/revenue.js"></script>
+
+    <!-- Load data, create visualizations -->
+    <script defer src="js/main.js"></script>
+
+    <!-- For animating the web page -->
+    <script defer src="js/script.js"></script>
 </head>
 <body>
 <div class="title-bar">
@@ -53,7 +61,7 @@
 
     <section class="slide" id="plot3">
         <div class="content-wrapper">
-            <div class="chart-placeholder">[Chart 3]</div>
+            <div id="price-chart" class="chart-placeholder"></div>
             <div class="text-content">
                 <h2>Price Wars: Movie Tickets vs Streaming Subscriptions 🎟️💰</h2>
                 <p>A single movie ticket costs nearly the same as a full month of streaming. With ticket prices rising steadily, while streaming services offer more content for less, it's no surprise that audiences are choosing to stay home.</p>
@@ -73,13 +81,15 @@
 
     <section class="slide" id="plot5">
         <div class="content-wrapper">
-            <div class="chart-placeholder">[Chart 5]</div>
+            <div class="chart-placeholder">
+                <img src="assets/awards_draft.jpg" alt="Draft of awards chart" width="450px">
+            </div>
             <div class="text-content">
-                <h2>Title</h2>
-                <p>Description</p>
+                <h2>Netflix at the Oscars: Streaming’s Big Wins 🏆</h2>
+                <p>Netflix has steadily carved out a place at the Academy Awards, proving that streaming platforms can compete with traditional studios. As streaming reshapes Hollywood, Netflix continues to challenge the notion that prestige films need a theatrical release to earn the most prestigious award in Hollywood.</p>
             </div>
         </div>
-    </section>
+    </section>        
 </div>
 
 <div class="page-tracker">
