@@ -4,9 +4,12 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Box Office vs Streaming</title>
-    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="css/styles.css">
+
+    <!-- d3 library -->
     <script src="https://d3js.org/d3.v6.min.js"></script>
-    <script defer src="script.js"></script>
+
+    <script defer src="js/script.js"></script>
 </head>
 <body>
     <div class="title-bar">
@@ -52,7 +55,7 @@
         
         <section class="slide" id="plot3">
             <div class="content-wrapper">
-                <div class="chart-placeholder">[Chart 3]</div>
+                <div id="price-chart" class="chart-placeholder"></div>
                 <div class="text-content">
                     <h2>Price Wars: Movie Tickets vs Streaming Subscriptions 🎟️💰</h2>
                     <p>A single movie ticket costs nearly the same as a full month of streaming. With ticket prices rising steadily, while streaming services offer more content for less, it's no surprise that audiences are choosing to stay home.</p>
@@ -94,35 +97,10 @@
         <p>© 2025 Mahe Chen, Qixuan Chu, Yan Luk</p>
     </footer>
 
-</body>
-</html>
-<html lang="en">
-
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Document</title>
-
-    <link rel="stylesheet" href="css/style.css">
-</head>
-
-<body>
-    <div id="price-chart"></div>
-
-
-    <!-- Load JS libraries -->
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"
-        integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz"
-        crossorigin="anonymous"></script>
-
-    <!-- d3 -->
-    <script src="https://d3js.org/d3.v7.min.js"></script>
-
     <!-- Visualization objects -->
     <script src="js/price.js"></script>
 
     <!-- Load data, create visualizations -->
     <script src="js/main.js"></script>
 </body>
-
 </html>
