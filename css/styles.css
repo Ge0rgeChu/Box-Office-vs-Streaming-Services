@@ -219,3 +219,18 @@ text.price-label {
 text {
     fill:white
 }
+
+
+#awards-tooltip {
+    position: absolute;
+    text-align: center;
+    font: 12px;
+}
+
+#awards-tooltip h3,h4 {
+    text-align: left;
+}
+
+#awards-tooltip h4 {
+    font: 14px sans-serif;
+}
