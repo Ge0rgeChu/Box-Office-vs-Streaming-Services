@@ -1,5 +1,6 @@
 // Initialize chart vartiables
 let priceChart;
+let awardsChart;
 
 // Date parser to convert strings to date objects
 let parseDateSub = d3.timeParse("%b-%Y"); // parser for streaming_service.csv
@@ -28,3 +29,8 @@ Promise.all(promises)
 
         priceChart = new PriceChart("price-chart", subscriptionData, ticketData);
     });
+
+d3.csv("./data/oscars-2025.csv")
+.then(function(data) {
+    awardsChart = new AwardsChart("awards-chart", data);
+})

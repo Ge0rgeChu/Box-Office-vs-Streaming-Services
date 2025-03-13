@@ -35,11 +35,11 @@ class PriceChart {
         vis.y = d3.scaleLinear()
             .range([vis.height, 0]);
 
-        vis.yAxis = d3.axisLeft()
-            .scale(vis.y);
-
         vis.xAxis = d3.axisBottom()
             .scale(vis.x);
+
+        vis.yAxis = d3.axisLeft()
+            .scale(vis.y);
 
         vis.svg.append("g")
             .attr("class", "y-axis axis");
@@ -92,7 +92,7 @@ class PriceChart {
                     date: data.year,
                     price: data.price
                 };
-    
+
                 ticketFormatted.push(tempObj);
             }
         }
@@ -101,7 +101,7 @@ class PriceChart {
         vis.displayData.set('Ticket', ticketFormatted)
         vis.services.push("Ticket");
 
-        // Update the visualization
+        // Update the visualisation
         vis.updateVis();
     }
 
@@ -156,7 +156,7 @@ class PriceChart {
                 return vis.y(firstObj.price);
             })
             .attr("dy", -5);
-        
+
         // Update axes
         vis.svg.select(".y-axis").call(vis.yAxis);
         vis.svg.select(".x-axis").call(vis.xAxis);
