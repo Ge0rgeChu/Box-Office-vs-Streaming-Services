@@ -12,11 +12,8 @@ class AwardsChart {
 
         vis.margin = { top: 20, right: 20, bottom: 70, left: 40 };
 
-        // vis.width = document.getElementById(vis.parentElement).getBoundingClientRect().width - vis.margin.left - vis.margin.right;
-        // vis.height = document.getElementById(vis.parentElement).getBoundingClientRect().height - vis.margin.top - vis.margin.bottom;
-
-        vis.width = 500;
-        vis.height = 500;
+        vis.width = document.getElementById(vis.parentElement).getBoundingClientRect().width - vis.margin.left - vis.margin.right;
+        vis.height = document.getElementById(vis.parentElement).getBoundingClientRect().height - vis.margin.top - vis.margin.bottom;
 
         // SVG drawing area
         vis.svg = d3.select(`#${vis.parentElement}`).append("svg")
@@ -46,6 +43,12 @@ class AwardsChart {
         vis.svg.append("g")
             .attr("class", "y-axis axis");
 
+        // Append tooltip
+        vis.tooltip = d3.select("body").append("div")
+            .attr("class", "tooltip")
+            .attr("id", "awards-tooltip");
+
+        // Wrangle data
         vis.wrangleData();
     }
 
@@ -119,7 +122,46 @@ class AwardsChart {
                 } else {
                     return "gray";
                 }
-            });
+            })
+
+            // add mouseover listener
+            .on("mouseover", function (event, d) {
+                d3.select(this)
+                    .attr('stroke-width', '2px')
+                    .attr('stroke', 'black')
+                    .attr('fill', 'rgba(255, 91, 91, 0.62)');
+
+                let nomString = d.nominees.map(obj => `${obj.nominee} - ${obj.category}`).join("<br>");
+
+                vis.tooltip
+                    .style("opacity", 1)
+                    .style("left", event.pageX + 20 + "px")
+                    .style("top", event.pageY + "px")
+                    .html(`
+                        <div style="border: thin solid grey; border-radius: 5px; background: steelblue; padding: 20px">
+                            <h3>${d.distributor} nominees</h3>    
+                            <h4> ${nomString}</h4> 
+                        </div>`);
+            })
+
+            // add mouseout listener
+            .on('mouseout', function (event, d) {
+                d3.select(this)
+                    .attr('stroke-width', '0px')
+                    .attr("fill", d => {
+                        if (d.distributor == "Netflix" || d.distributor == "Mubi") {
+                            return "#D4AF37";
+                        } else {
+                            return "gray";
+                        }
+                    })
+
+                vis.tooltip
+                    .style("opacity", 0)
+                    .style("left", 0)
+                    .style("top", 0)
+                    .html(``)
+            })
 
         rect.exit().remove();
 
