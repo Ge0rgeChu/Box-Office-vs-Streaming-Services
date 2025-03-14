@@ -5,7 +5,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Box Office vs Streaming</title>
     <link rel="stylesheet" href="css/styles.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/noUiSlider/15.6.1/nouislider.min.css">
     <script src="https://d3js.org/d3.v6.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/noUiSlider/15.6.1/nouislider.min.js"></script>
 
     <!-- Visualization objects -->
     <script defer src="js/price.js"></script>
@@ -52,8 +54,15 @@
     </section>
 
     <section class="slide" id="plot2">
-        <div class="content-wrapper">
-            <div class="chart-placeholder" id="box-office-streaming-chart"></div>
+        <div class="content-wrapper" style="justify-content: center; align-items: flex-start;">
+            <div style="display: flex; flex-direction: row; align-items: flex-start; gap: 40px;">
+                <div style="display: flex; flex-direction: column; align-items: center;">
+                    <span id="slider-lower-label" style="margin-bottom: 17px;">-50%</span>
+                    <div id="slider" style="height: 440px; width: 20px;"></div>
+                    <span id="slider-upper-label" style="margin-top: 17px;">50%</span>
+                </div>
+                <div class="chart-placeholder" id="box-office-streaming-chart"></div>
+            </div>
             <div class="text-content">
                 <h2>The Shift: Box Revenue vs. Streaming Growth 📉📈</h2>
                 <p>As streaming services gained popularity, did it come at the expense of the box office? Over the past decade, we've seen a decline in box office revenue while streaming subscriptions surged. But is this correlation, or causation?</p>
