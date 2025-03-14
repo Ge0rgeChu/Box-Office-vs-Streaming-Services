@@ -220,6 +220,27 @@ text {
     fill:white
 }
 
+#slider-upper-label, #slider-lower-label {
+    font-size: 10px;
+    color: white;
+}
+
+#slider .noUi-connect {
+    background: #444;
+}
+
+#slider .noUi-handle {
+    background: #333;
+    border: 1px solid #222;
+}
+
+text.price-label {
+    font-size: 12px;
+}
+
+text {
+    fill: white;
+}
 
 #awards-tooltip {
     position: absolute;
