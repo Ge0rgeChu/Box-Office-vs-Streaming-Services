@@ -61,6 +61,24 @@ class PriceChart {
             "Ticket": "#FFA500"
         };
 
+        // Append tooltip
+        vis.tooltip = vis.svg.append("g")
+            .attr("display", "none")
+            .attr("class", "tooltip");
+
+        vis.tooltip.append("line")
+            .attr("class", "tooltip-line")
+            .attr("x1", 5)
+            .attr("x2", 5)
+            .attr("y1", 0)
+            .attr("y2", vis.height)
+            .style("stroke", "blue");
+
+        vis.tooltip.append("text")
+            .attr("class", "tooltip-prices")
+            .attr("x", 10)
+            .attr("y", 10);
+
         // (Filter, aggregate, modify data)
         vis.wrangleData();
     }
@@ -161,5 +179,56 @@ class PriceChart {
         vis.svg.select(".y-axis").call(vis.yAxis);
         vis.svg.select(".x-axis").call(vis.xAxis);
 
+        // Overlay a rectangle on top of chart (for the interaction)
+        vis.svg.append("rect")
+            .attr("width", vis.width)
+            .attr("height", vis.height)
+            .attr("opacity", 0)
+            .on("mouseover", function (event, d) {
+                vis.tooltip.attr("display", "null");
+            })
+            .on("mouseout", function (event, d) {
+                vis.tooltip.attr("display", "none");
+            })
+            .on("mousemove", function (event, d) {
+                let bisectDate = d3.bisector(d => d.date).left;
+
+                let x = d3.pointer(event)[0];
+                x = vis.x.invert(x); // the date which was selected
+
+                // Using the date in x, collect all the data into a single string
+                let tooltipString = [];
+
+                for (let key of vis.displayData.keys()) {
+                    let keyArr = vis.displayData.get(key);
+                    keyArr.sort((a, b) => a.date - b.date); // Ensure sorting before bisecting
+
+                    let index = bisectDate(keyArr, x);
+                    let mouseData = keyArr[index];
+
+                    tooltipString.push(`${key}: ${mouseData.price}`);
+                }
+
+                // move the tooltip and change tooltip info
+                vis.tooltip.attr("transform", `translate(${d3.pointer(event)[0]}, 0)`);
+
+                let tooltipText = vis.tooltip.select("text.tooltip-prices")
+                    .selectAll("tspan")
+                    .data(tooltipString);
+
+                tooltipText.enter().append("tspan")
+                    .merge(tooltipText)
+                    .attr("x", 10)
+                    .attr("y", (d, i) => i * 15 + 10) // Offset each line by 15px
+                    .text(d => d)
+                    .style("font-size", "10px");
+
+                tooltipText.exit().remove();
+
+                vis.tooltip.attr("display", "block");
+            });
+
+
     }
+
 }
