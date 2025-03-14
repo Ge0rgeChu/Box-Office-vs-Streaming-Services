@@ -126,6 +126,7 @@ document.addEventListener("DOMContentLoaded", function () {
             .attr("r", 4)
             .attr("fill", "#ADD8E6")
             .on("mouseover", function(event, d) {
+                d3.select(this).attr("fill", "#6495ED");
                 tooltip.style("opacity", 1)
                     .html("Year: " + d.year +
                         "<br>Box Growth: " + d3.format(".1%")(d.boxGrowth) +
@@ -136,6 +137,7 @@ document.addEventListener("DOMContentLoaded", function () {
                     .style("top", (event.pageY - 20) + "px");
             })
             .on("mouseout", function() {
+                d3.select(this).attr("fill", "#ADD8E6");
                 tooltip.style("opacity", 0);
             });
         svg.selectAll("circle.netflix")
@@ -148,6 +150,7 @@ document.addEventListener("DOMContentLoaded", function () {
             .attr("r", 4)
             .attr("fill", "red")
             .on("mouseover", function(event, d) {
+                d3.select(this).attr("fill", "darkred");
                 tooltip.style("opacity", 1)
                     .html("Year: " + d.year +
                         "<br>Netflix Growth: " + d3.format(".1%")(d.netflixGrowth) +
@@ -158,6 +161,7 @@ document.addEventListener("DOMContentLoaded", function () {
                     .style("top", (event.pageY - 20) + "px");
             })
             .on("mouseout", function() {
+                d3.select(this).attr("fill", "red");
                 tooltip.style("opacity", 0);
             });
         let legend = svg.append("g")
