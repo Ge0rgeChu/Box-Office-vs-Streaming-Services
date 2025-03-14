@@ -63,8 +63,7 @@ class AwardsChart {
         // Group data by distributor
         const nomineeByDistributor = d3.group(vis.data, d => d.distributor);
 
-        // put all the distributors into displayData, keeping the distributors with only one nominee together
-        let onlyOneNominee = [];
+        // put all the distributors into displayData, don't include the distributors with only one nominee
 
         vis.distributors.forEach((d) => {
             let numberOfNoms = nomineeByDistributor.get(d).length;
@@ -78,18 +77,7 @@ class AwardsChart {
 
                 vis.displayData.push(tempObj);
             }
-
-            else {
-                onlyOneNominee.push(nomineeByDistributor.get(d)[0]);
-            }
         });
-
-        // Add all the "other" nominees to displayData
-        vis.displayData.push({
-            distributor: "Other",
-            numberOfNoms: onlyOneNominee.length,
-            nominees: onlyOneNominee
-        })
 
         // reorder vis.displayData according to numberOfNoms
         vis.displayData.sort((a, b) => d3.ascending(a.numberOfNoms, b.numberOfNoms));
@@ -140,7 +128,7 @@ class AwardsChart {
                     .style("top", event.pageY + "px")
                     .html(`
                         <div style="border: thin solid grey; border-radius: 5px; background: steelblue; padding: 20px">
-                            <h3>${d.distributor} nominees</h3>    
+                            <h3>${d.distributor} - ${d.numberOfNoms} nominees</h3>    
                             <h4> ${nomString}</h4> 
                         </div>`);
             })
