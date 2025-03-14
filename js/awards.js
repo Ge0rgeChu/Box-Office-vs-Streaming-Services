@@ -91,7 +91,8 @@ class AwardsChart {
             nominees: onlyOneNominee
         })
 
-        console.log(vis.displayData)
+        // reorder vis.displayData according to numberOfNoms
+        vis.displayData.sort((a, b) => d3.ascending(a.numberOfNoms, b.numberOfNoms));
 
         // Update the visualisation
         vis.updateVis();
@@ -117,7 +118,7 @@ class AwardsChart {
             .attr("width", vis.x.bandwidth())
             .attr("height", d => vis.height - vis.y(d.numberOfNoms))
             .attr("fill", d => {
-                if (d.distributor == "Netflix" || d.distributor == "Mubi") {
+                if (d.distributor == "Netflix") {
                     return "#D4AF37";
                 } else {
                     return "gray";
@@ -149,7 +150,7 @@ class AwardsChart {
                 d3.select(this)
                     .attr('stroke-width', '0px')
                     .attr("fill", d => {
-                        if (d.distributor == "Netflix" || d.distributor == "Mubi") {
+                        if (d.distributor == "Netflix") {
                             return "#D4AF37";
                         } else {
                             return "gray";
