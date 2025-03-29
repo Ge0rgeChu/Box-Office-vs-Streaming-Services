@@ -9,7 +9,6 @@ class PriceChart {
         this.services = [];
         this.allServices = [...new Set(this.fullStreamingData.map(d => d.service))];
         if (!this.allServices.includes("Ticket")) this.allServices.push("Ticket");
-        // Initialize activeServices as a Set containing all services
         this.activeServices = new Set(this.allServices);
         this.initVis();
     }
@@ -175,7 +174,6 @@ class PriceChart {
         paths.enter().append("path")
             .attr("class", "price-path")
             .merge(paths)
-            // Set thicker lines (e.g., stroke-width: 3)
             .attr("fill", "none")
             .attr("stroke", d => vis.colours[d[0].service])
             .attr("stroke-width", 3)
