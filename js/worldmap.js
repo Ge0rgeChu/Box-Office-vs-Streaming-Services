@@ -1,5 +1,55 @@
 document.addEventListener("DOMContentLoaded", function() {
-    const width = 700, height = 400;
+    // 1) ADJUSTABLE GLOBAL VARIABLES
+
+    // Some countries in the GeoJSON differ from the CSV names; fix them here:
+    const countryNameFix = {
+        "USA": "United States",
+        "US": "United States",
+        "United States of America": "United States",
+
+        // Russia
+        "Russia": "Russian Federation",
+        "RUS": "Russia",
+
+        // South Korea
+        "Republic of Korea": "South Korea",
+        "Korea, Rep.": "South Korea",
+        "Korea, Republic of": "South Korea",
+        "South Korea": "South Korea",
+
+        // North Korea
+        "Korea, Dem. People's Rep.": "North Korea",
+        "Democratic People's Republic of Korea": "North Korea",
+
+        // Some well-known European countries with alternate names
+        "United Kingdom": "United Kingdom",
+        "UK": "United Kingdom",
+        "GBR": "United Kingdom",
+        "Great Britain": "United Kingdom",
+        "United Kingdom of Great Britain and Northern Ireland": "United Kingdom",
+
+        "Deutschland": "Germany",
+        "DEU": "Germany",
+        "Federal Republic of Germany": "Germany",
+
+        "Italia": "Italy",
+        "Italian Republic": "Italy",
+
+        "Kingdom of Spain": "Spain",
+        "ESP": "Spain",
+
+        "Ivory Coast": "Ivory Coast",
+
+        "People's Republic of China": "China",
+        "PRC": "China"
+    };
+
+    // Tweak this to reduce GDP's impact in the score:
+    let GDP_DIVISOR = 500;
+
+    // 2) SETUP SVG AND MAP
+    const width = 700,
+        height = 400;
 
     const svg = d3.select("#world-map")
         .append("svg")
@@ -9,10 +59,12 @@ document.addEventListener("DOMContentLoaded", function() {
     const tooltip = d3.select("#world-map")
         .append("div")
         .style("position", "absolute")
-        .style("background-color", "rgba(255,255,255,0.9)")
-        .style("padding", "8px")
-        .style("border", "1px solid #333")
+        .style("background", "rgba(0,0,0,0.7)")
+        .style("color", "white")
+        .style("padding", "5px")
         .style("border-radius", "4px")
+        .style("font-size", "12px")
+        .style("text-align", "left")
         .style("pointer-events", "none")
         .style("opacity", 0);
 
@@ -22,36 +74,40 @@ document.addEventListener("DOMContentLoaded", function() {
 
     const path = d3.geoPath().projection(projection);
 
+    // Diverging color scale: -0.3 -> Blue, +0.3 -> Red
     const colorScale = d3.scaleDiverging()
         .domain([-0.3, 0, 0.3])
         .interpolator(t => d3.interpolateRdBu(1 - t));
 
+    // 3) DATA HOLDERS
     let worldGeo,
-        netflixByYear = {},
-        countryRatio = {},
-        gdpData = {},
-        popData = {},
-        boxData = {},
-        finalData = {};
+        netflixByYear = {}, // Summation of Netflix subs per year
+        countryRatio = {},  // By-country ratio of Netflix subs
+        gdpData = {},       // By country/year
+        popData = {},       // By country/year
+        boxData = {},       // By country/year
+        finalData = {};     // We'll store partial fields (subs, box, pop, gdp)
 
-    const years = d3.range(2012, 2025);
-    let currentYear = 2012;
+    // Our valid years: 2012 to 2023
+    const years = d3.range(2012, 2024);
 
+    // 4) UTILITY FUNCTIONS
     function parseValue(v) {
         if (!v || v.trim().toLowerCase() === "no data") return null;
         return +v.replace(/[^\d.]/g, "");
     }
 
+    // Sum Netflix data (mm) from quarters -> year
     function computeNetflixByYear(data) {
         data.forEach(d => {
             let val = parseValue(d["Netflix subscribers (mm)"]);
             if (!val) return;
             let y = +d.year;
-            if (!netflixByYear[y]) netflixByYear[y] = 0;
-            netflixByYear[y] += val;
+            netflixByYear[y] = (netflixByYear[y] || 0) + val;
         });
     }
 
+    // Ratio for each country's share of Netflix subscribers
     function computeCountryRatio(data) {
         let total = 0;
         data.forEach(d => {
@@ -63,245 +119,307 @@ document.addEventListener("DOMContentLoaded", function() {
             let c = d.country.trim();
             let subsText = d.subscribers ? d.subscribers.replace("M","") : "";
             let val = parseValue(subsText) || 0;
-            countryRatio[c] = total > 0 ? val / total : 0;
+            countryRatio[c] = (total > 0) ? val / total : 0;
         });
     }
 
+    // Load GDP data (2012..2023) from the CSV
     function loadGDP(data) {
-        data.forEach(row => {
-            if (!row["GDP"]) return;
-            let c = row["GDP"].trim();
-            if (!gdpData[c]) gdpData[c] = {};
-            for (let i = 1980; i <= 2024; i++) {
-                let val = parseValue(row[i]);
-                gdpData[c][i] = val ? val * 1e9 : null;
+        data.forEach(d => {
+            // Suppose first column is "GDP" for the country
+            let cName = d["GDP"];
+            if (!cName) return;
+            cName = cName.trim();
+            if (!gdpData[cName]) gdpData[cName] = {};
+            for (let year = 1980; year <= 2024; year++) {
+                let val = parseValue(d[year]);
+                // We only care about 2012..2023
+                if (year >= 2012 && year <= 2023) {
+                    gdpData[cName][year] = val ? val * 1e9 : null;
+                }
             }
         });
     }
 
+    // Load population data (2012..2023) from the CSV
     function loadPop(data) {
         data.forEach(row => {
-            let c = row.country.trim();
-            if (!popData[c]) popData[c] = {};
+            let cName = row.country.trim();
+            if (!popData[cName]) popData[cName] = {};
             for (let i = 2000; i <= 2023; i++) {
                 let val = parseValue(row[i]);
-                popData[c][i] = val;
+                if (i >= 2012 && i <= 2023) {
+                    popData[cName][i] = val;
+                }
             }
         });
     }
 
+    // Load box office data (2012..2023) from the CSV
     function loadBox(data) {
         data.forEach(row => {
-            let c = row.Country.trim();
+            let cName = row.Country.trim();
             let y = +row.Year;
             let val = parseValue(row["Total Worldwide Box Office"]);
-            if (!boxData[c]) boxData[c] = {};
-            boxData[c][y] = val;
+            if (!boxData[cName]) boxData[cName] = {};
+            // Only store 2012..2023
+            if (y >= 2012 && y <= 2023) {
+                boxData[cName][y] = val;
+            }
         });
     }
 
+    // We'll store partial data (subs, box, pop, gdp) for each country-year
+    // Then compute the final "score" at runtime (when we know startYear/endYear).
     function computeFinal() {
-        worldGeo.features.forEach(f => {
-            let cn = f.properties.name;
-            if (!finalData[cn]) finalData[cn] = {};
-            years.forEach(y => {
-                let g = gdpData[cn]?.[y] || null;
-                let p = popData[cn]?.[y] || null;
-                let b = boxData[cn]?.[y] || null;
-                let ratio = countryRatio[cn] || 0;
-                let nfTotal = netflixByYear[y] || null;
+        worldGeo.features.forEach(feature => {
+            let geoName = feature.properties.name;
+            let csvName = countryNameFix[geoName] || geoName;
+            if (!finalData[csvName]) finalData[csvName] = {};
 
-                if (!nfTotal || !g || !p || !b) {
-                    finalData[cn][y] = null;
-                } else {
-                    let countrySubs = nfTotal * ratio * 5;
-                    let score = (countrySubs * 1e6 / p) - (b / g);
-                    finalData[cn][y] = {
-                        score: score,
-                        subs: countrySubs,
-                        box: b,
-                        pop: p,
-                        gdp: g
-                    };
-                }
+            years.forEach(y => {
+                let g   = gdpData[csvName]?.[y] || null;
+                let p   = popData[csvName]?.[y] || null;
+                let b   = boxData[csvName]?.[y] || null;
+                let ratio = countryRatio[csvName] || 0;
+                let nfTotal = netflixByYear[y] || 0;
+
+                let subs = nfTotal * ratio * 5; // multiply by 5
+                finalData[csvName][y] = {
+                    subs: subs,
+                    box:  b,
+                    pop:  p,
+                    gdp:  g
+                };
             });
         });
     }
 
-    function updateMap(year) {
-        currentYear = year;
+    // Sum up fields for a given start..end year range, then compute the popularity score:
+    // score = (sumSubs / sumPop) - (sumBox / (sumGDP / GDP_DIVISOR)).
+    function computeRangeScoreAndFields(country, startY, endY) {
+        let sumSubs = 0,
+            sumBox  = 0,
+            sumPop  = 0,
+            sumGDP  = 0,
+            foundAnyData = false;
+
+        for (let y = startY; y <= endY; y++) {
+            let info = finalData[country]?.[y];
+            if (!info) continue;
+
+            if (info.subs != null) sumSubs += (info.subs * 1e6);
+            if (info.box  != null) sumBox  += info.box;
+            if (info.pop  != null) sumPop  += info.pop;
+            if (info.gdp  != null) sumGDP  += info.gdp;
+            foundAnyData = true;
+        }
+
+        if (!foundAnyData || sumPop === 0 || sumGDP === 0) {
+            return {
+                score: null,
+                subs: sumSubs,
+                box:  sumBox,
+                pop:  sumPop,
+                gdp:  sumGDP
+            };
+        }
+
+        // Apply the GDP_DIVISOR to reduce effect of large GDP
+        let score = (sumSubs / sumPop) - (sumBox / (sumGDP / GDP_DIVISOR));
+        return {
+            score,
+            subs: sumSubs,
+            box:  sumBox,
+            pop:  sumPop,
+            gdp:  sumGDP
+        };
+    }
+
+    // This function re-colors the map based on window.startYear..window.endYear
+    function updateMap() {
+        // Fallback if window.startYear or window.endYear not set
+        if (typeof window.startYear === 'undefined') window.startYear = 2012;
+        if (typeof window.endYear === 'undefined')   window.endYear   = 2013;
+
         svg.selectAll("path.map-countries")
             .transition()
             .duration(200)
             .attr("fill", d => {
-                let cn = d.properties.name;
-                let info = finalData[cn]?.[year];
-                if (!info) return "#ffffff";
-                return colorScale(info.score);
-            });
-        d3.select("#slider-year-label").text("Year: " + year);
-    }
-
-    Promise.all([
-        d3.csv("data/NetflixSubscribers2012-2024ByQuarter.csv"),
-        d3.csv("data/netflix subscribers by country.csv"),
-        d3.csv("data/WorldGDPByYear1980-2023.csv"),
-        d3.csv("data/WorldPopulationByYear2000-2023.csv"),
-        d3.csv("data/WorldBoxRevenueByCountry.csv"),
-        d3.json("https://raw.githubusercontent.com/holtzy/D3-graph-gallery/master/DATA/world.geojson")
-    ]).then(function(files) {
-        computeNetflixByYear(files[0]);
-        computeCountryRatio(files[1]);
-        loadGDP(files[2]);
-        loadPop(files[3]);
-        loadBox(files[4]);
-        worldGeo = files[5];
-        computeFinal();
-
-        // Draw map
-        svg.append("g")
-            .selectAll("path")
-            .data(worldGeo.features)
-            .enter()
-            .append("path")
-            .attr("class", "map-countries")
-            .attr("d", path)
-            .attr("stroke", "#333")
-            .attr("fill", "#ffffff")
-            .on("mouseover", function(event, d) {
-                let cn = d.properties.name;
-                let info = finalData[cn]?.[currentYear] || null;
-                tooltip.style("opacity", 1);
-
-                if (!info) {
-                    tooltip.html(`
-                        <strong style="color: blue;">${cn}</strong><br/>
-                        <span style="color: #444;">No data</span>
-                    `);
-                } else {
-                    let fmt = d3.format(".2s");
-                    let scoreFmt = d3.format(".4f");
-                    tooltip.html(`
-                        <strong style="color: blue;">${cn}</strong><br/>
-                        <span style="color: #444;">
-                          Popularity Score: ${scoreFmt(info.score)}<br/>
-                          Netflix Subs: ${d3.format(".2f")(info.subs)}M<br/>
-                          Box Office: $${fmt(info.box)}<br/>
-                          Population: ${fmt(info.pop)}<br/>
-                          GDP: $${fmt(info.gdp)}
-                        </span>
-                    `);
+                let geoName = d.properties.name;
+                let csvName = countryNameFix[geoName] || geoName;
+                let agg = computeRangeScoreAndFields(csvName, window.startYear, window.endYear);
+                if (agg.score == null) {
+                    return "#ffffff";
                 }
-            })
-            .on("mousemove", function(event) {
-                tooltip
-                    .style("left", (event.pageX + 10) + "px")
-                    .style("top", (event.pageY + 10) + "px");
-            })
-            .on("mouseout", function() {
-                tooltip.style("opacity", 0);
+                return colorScale(agg.score);
+            });
+    }
+    // Expose updateMap so script.js can call it
+    window.updateMap = updateMap;
+
+    // 5) DATA LOADING & RENDER
+    Promise.all([
+        // The Netflix quarters -> yearly
+        d3.csv("data/NetflixSubscribers2012-2024ByQuarter.csv"),
+        // The Netflix by-country ratio
+        d3.csv("data/netflix subscribers by country.csv"),
+        // The World GDP by year
+        d3.csv("data/WorldGDPByYear1980-2023.csv"),
+        // The World population by year
+        d3.csv("data/WorldPopulationByYear2000-2023.csv"),
+        // The box office by year
+        d3.csv("data/WorldBoxRevenueByCountry.csv"),
+        // The GeoJSON
+        d3.json("https://raw.githubusercontent.com/holtzy/D3-graph-gallery/master/DATA/world.geojson")
+    ])
+        .then(function(files) {
+            computeNetflixByYear(files[0]);
+            computeCountryRatio(files[1]);
+            loadGDP(files[2]);
+            loadPop(files[3]);
+            loadBox(files[4]);
+            worldGeo = files[5];
+
+            computeFinal();
+
+            // Draw map
+            svg.append("g")
+                .selectAll("path")
+                .data(worldGeo.features)
+                .enter()
+                .append("path")
+                .attr("class", "map-countries")
+                .attr("d", path)
+                .attr("stroke", "#555")
+                .attr("stroke-width", 1)
+                .attr("fill", "#ffffff")
+                .on("mouseover", function(event, d) {
+                    // Highlight country outline
+                    d3.select(this)
+                        .attr("stroke", "yellow")
+                        .attr("stroke-width", 2);
+
+                    let geoName = d.properties.name;
+                    let csvName = countryNameFix[geoName] || geoName;
+                    let agg = computeRangeScoreAndFields(csvName, window.startYear, window.endYear);
+
+                    tooltip.style("opacity", 1);
+
+                    // Format final sums:
+                    let scoreVal = agg.score != null ? d3.format(".4f")(agg.score) : "No data";
+                    let subsVal  = (agg.subs && agg.subs > 0) ? (d3.format(".2f")(agg.subs / 1e6) + "M") : "No data";
+                    let boxVal   = (agg.box && agg.box > 0)   ? ("$" + d3.format(".2s")(agg.box)) : "No data";
+                    let popVal   = (agg.pop && agg.pop > 0)   ? d3.format(".2s")(agg.pop)         : "No data";
+                    let gdpVal   = (agg.gdp && agg.gdp > 0)   ? ("$" + d3.format(".2s")(agg.gdp)) : "No data";
+
+                    tooltip.html(`
+                    <strong>${csvName}</strong><br/>
+                    Popularity Score: ${scoreVal}<br/>
+                    Netflix Subs: ${subsVal}<br/>
+                    Box Office: ${boxVal}<br/>
+                    Population: ${popVal}<br/>
+                    GDP: ${gdpVal}
+                `);
+                })
+                .on("mousemove", function(event) {
+                    tooltip
+                        .style("left", (event.pageX + 10) + "px")
+                        .style("top", (event.pageY + 10) + "px");
+                })
+                .on("mouseout", function() {
+                    // Revert country outline
+                    d3.select(this)
+                        .attr("stroke", "#555")
+                        .attr("stroke-width", 1);
+                    tooltip.style("opacity", 0);
+                });
+
+            // Title
+            svg.append("text")
+                .attr("x", width / 2)
+                .attr("y", 18)
+                .attr("text-anchor", "middle")
+                .style("font-size", "24px")
+                .style("font-weight", "bold")
+                .style("fill", "lightblue")
+                .text("Global Entertainment Dominance by Year Range");
+
+            // 6) COLOR LEGEND
+            const legendData = d3.range(-0.3, 0.31, 0.1),
+                legendWidth = 200,
+                legendHeight = 10;
+
+            const legendScale = d3.scaleLinear()
+                .domain([-0.3, 0.3])
+                .range([0, legendWidth]);
+            const legendAxis = d3.axisBottom(legendScale)
+                .ticks(6)
+                .tickFormat(d3.format(".1f"));
+
+            const lg = svg.append("g")
+                .attr("transform", `translate(${(width - legendWidth)/2 + 39},${height - 30})`);
+
+            // Create gradient
+            const defs = svg.append("defs");
+            const grad = defs.append("linearGradient").attr("id", "grad");
+            grad.attr("x1", "0%").attr("x2", "100%")
+                .attr("y1", "0%").attr("y2", "0%");
+
+            legendData.forEach((d, i) => {
+                grad.append("stop")
+                    .attr("offset", (i / (legendData.length - 1)) * 100 + "%")
+                    .attr("stop-color", colorScale(d));
             });
 
-        // Main title
-        svg.append("text")
-            .attr("x", width / 2)
-            .attr("y", 30)
-            .attr("text-anchor", "middle")
-            .style("font-size", "24px")
-            .style("font-weight", "bold")
-            .style("fill", "lightblue")
-            .text("Global Entertainment Dominance by Year");
+            // Legend color bar
+            lg.append("rect")
+                .attr("width", legendWidth)
+                .attr("height", legendHeight)
+                .style("fill", "url(#grad)")
+                .style("stroke", "#555");
 
-        // Legend
-        const legendData = d3.range(-0.3, 0.31, 0.1),
-            legendWidth = 200,
-            legendHeight = 10;
+            lg.append("g")
+                .attr("transform", `translate(0,${legendHeight})`)
+                .call(legendAxis);
 
-        const legendScale = d3.scaleLinear()
-            .domain([-0.3, 0.3])
-            .range([0, legendWidth]);
+            // Explanation text: Netflix vs. Box
+            const explanation = svg.append("text")
+                .attr("x", (width - legendWidth)/2 + 15)
+                .attr("y", height - 45)
+                .style("font-size", "12px")
+                .style("pointer-events", "none");
 
-        const legendAxis = d3.axisBottom(legendScale)
-            .ticks(6)
-            .tickFormat(d3.format(".1f"));
+            explanation.append("tspan")
+                .attr("fill", "blue")
+                .text("← Netflix Dominates    ")
+                .attr("font-size", "12px")
+                .attr("alignment-baseline", "middle");
 
-        const lg = svg.append("g")
-            .attr("transform", `translate(${(width - legendWidth)/2},${height - 30})`);
+            explanation.append("tspan")
+                .attr("fill", "red")
+                .text("Box Office Dominates →")
+                .attr("font-size", "12px")
+                .attr("alignment-baseline", "middle");
 
-        const defs = svg.append("defs");
-        const grad = defs.append("linearGradient").attr("id", "grad");
-        grad.attr("x1", "0%").attr("x2", "100%").attr("y1", "0%").attr("y2", "0%");
+            // "No Data" legend
+            svg.append("rect")
+                .attr("x", (width - legendWidth)/2 - 150)
+                .attr("y", height - 70)
+                .attr("width", 15)
+                .attr("height", 15)
+                .style("fill", "#ffffff")
+                .style("stroke", "#555");
 
-        legendData.forEach((d, i) => {
-            grad.append("stop")
-                .attr("offset", (i / (legendData.length - 1)) * 100 + "%")
-                .attr("stop-color", colorScale(d));
+            svg.append("text")
+                .attr("x", (width - legendWidth)/2 - 130)
+                .attr("y", height - 58)
+                .style("fill", "#ffffff")
+                .text("No Data")
+                .attr("font-size", "12px")
+                .attr("alignment-baseline", "middle");
+
+            // Finally, color the map for the current global range
+            updateMap();
         });
-
-        lg.append("rect")
-            .attr("width", legendWidth)
-            .attr("height", legendHeight)
-            .style("fill", "url(#grad)")
-            .style("stroke", "#333");
-
-        lg.append("g")
-            .attr("transform", "translate(0,10)")
-            .call(legendAxis);
-
-        const expl = svg.append("text")
-            .attr("x", (width - legendWidth)/2)
-            .attr("y", height - 45)
-            .style("font-size", "12px")
-            .style("pointer-events", "none");
-
-        expl.append("tspan")
-            .attr("fill", "blue")
-            .text("← Netflix Dominates    ");
-
-        expl.append("tspan")
-            .attr("fill", "red")
-            .text("Box Office Dominates →");
-
-        svg.append("rect")
-            .attr("x", (width - legendWidth)/2 - 70)
-            .attr("y", height - 70)
-            .attr("width", 15)
-            .attr("height", 15)
-            .style("fill", "#ffffff")
-            .style("stroke", "#333");
-
-        svg.append("text")
-            .attr("x", (width - legendWidth)/2 - 50)
-            .attr("y", height - 58)
-            .style("fill", "#444")
-            .text("No Data");
-
-        let sliderContainer = d3.select("#world-map")
-            .append("div")
-            .style("display", "flex")
-            .style("flex-direction", "column")
-            .style("align-items", "center")
-            .style("margin-top", "10px");
-
-        sliderContainer.append("div")
-            .attr("id", "slider-year-label")
-            .style("margin-bottom", "6px")
-            .style("font-weight", "bold")
-            .text("Year: " + currentYear);
-
-        let slider = sliderContainer.append("input")
-            .attr("type", "range")
-            .attr("min", 2012)
-            .attr("max", 2024)
-            .attr("value", currentYear)
-            .attr("step", 1)
-            .style("width", "150px")
-            .style("accent-color", "darkblue")
-            .on("input", function() {
-                let val = +d3.select(this).property("value");
-                updateMap(val);
-            });
-
-        updateMap(2012);
-    });
 });
