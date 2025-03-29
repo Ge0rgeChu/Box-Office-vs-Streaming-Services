@@ -21,6 +21,17 @@
 
     <!-- For animating the web page -->
     <script defer src="js/script.js"></script>
+
+    <!-- Slider color styling to match revenue slider -->
+    <style>
+        #global-slider .noUi-connect {
+            background: #444;
+        }
+        #global-slider .noUi-handle {
+            background: #333;
+            border: 1px solid #222;
+        }
+    </style>
 </head>
 <body>
 <div class="title-bar">
@@ -50,10 +61,6 @@
                 <h2>The Price of Access: A Global Perspective 🌍</h2>
                 <p>Not all audiences pay the same for entertainment. Streaming services like Netflix have different subscription prices worldwide, adjusting for local economies. While some regions pay a premium, others enjoy low-cost access. But how does this affect traditional cinemas?</p>
             </div>
-        </div>
-        <div style="margin-top:20px; display:flex; justify-content:center; align-items:center; gap:10px;">
-            <span id="world-slider-label"></span>
-            <div id="world-slider" style="height:300px; width:20px;"></div>
         </div>
     </section>
 
@@ -96,14 +103,36 @@
 
     <section class="slide" id="plot5">
         <div class="content-wrapper">
-            <div id="awards-chart" class="chart-placeholder">
-            </div>
+            <div id="awards-chart" class="chart-placeholder"></div>
             <div class="text-content">
                 <h2>Netflix at the Oscars: Streaming’s Big Wins 🏆</h2>
                 <p>Netflix has steadily carved out a place at the Academy Awards, proving that streaming platforms can compete with traditional studios. As streaming reshapes Hollywood, Netflix continues to challenge the notion that prestige films need a theatrical release to earn the most prestigious award in Hollywood.</p>
             </div>
         </div>
     </section>
+</div>
+
+<!-- Modified global slider container: moved higher and with year labels -->
+<div id="global-slider-container"
+     style="position: fixed; bottom: 60px; width: 100%; display: none; justify-content: center; align-items: center; z-index: 999;">
+    <div style="display: flex; align-items: center;">
+
+        <!-- Left label block -->
+        <div style="text-align: center; margin-right: 10px;">
+            <div style="font-size:12px;">Start Year</div>
+            <div id="global-slider-left-label" style="font-size:12px;">2012</div>
+        </div>
+
+        <!-- The slider -->
+        <div id="global-slider" style="width: 300px; margin: 0 20px;"></div>
+
+        <!-- Right label block -->
+        <div style="text-align: center; margin-left: 10px;">
+            <div style="font-size:12px;">End Year</div>
+            <div id="global-slider-right-label" style="font-size:12px;">2023</div>
+        </div>
+
+    </div>
 </div>
 
 <div class="page-tracker">
