@@ -9,13 +9,15 @@ class PriceChart {
         this.services = [];
         this.allServices = [...new Set(this.fullStreamingData.map(d => d.service))];
         if (!this.allServices.includes("Ticket")) this.allServices.push("Ticket");
+        // Initialize activeServices as a Set containing all services
+        this.activeServices = new Set(this.allServices);
         this.initVis();
     }
 
     initVis() {
         let vis = this;
 
-        vis.margin = { top: 10, right: 130, bottom: 50, left: 50 };
+        vis.margin = { top: 10, right: 130, bottom: 50, left: 53 };
 
         vis.width = document.getElementById(vis.parentElement).getBoundingClientRect().width - vis.margin.left - vis.margin.right;
         vis.height = document.getElementById(vis.parentElement).getBoundingClientRect().height - vis.margin.top - vis.margin.bottom;
@@ -51,7 +53,7 @@ class PriceChart {
             .attr("x", -vis.height / 2)
             .attr("y", -vis.margin.left + 20)
             .attr("text-anchor", "middle")
-            .text("Price");
+            .text("Price($)");
 
         vis.colours = {
             "Netflix": "#E50914",
@@ -88,19 +90,37 @@ class PriceChart {
             .style("text-align", "left")
             .style("pointer-events", "none");
 
+        // Create legend group and add click interactions
         vis.legend = vis.svg.append("g")
             .attr("class", "legend")
             .attr("transform", `translate(${vis.width + 20}, 0)`);
         vis.allServices.forEach((s, i) => {
-            vis.legend.append("rect")
+            let legendItem = vis.legend.append("g")
+                .attr("class", "legend-item")
+                .attr("transform", `translate(0, ${i * 20})`)
+                .style("cursor", "pointer")
+                .on("click", function() {
+                    // Toggle the active state of service s
+                    if (vis.activeServices.has(s)) {
+                        vis.activeServices.delete(s);
+                        d3.select(this).select("rect")
+                            .style("opacity", 0.3);
+                    } else {
+                        vis.activeServices.add(s);
+                        d3.select(this).select("rect")
+                            .style("opacity", 1);
+                    }
+                    vis.updateVis();
+                });
+            legendItem.append("rect")
                 .attr("x", 0)
-                .attr("y", i * 20)
+                .attr("y", 0)
                 .attr("width", 12)
                 .attr("height", 12)
                 .attr("fill", vis.colours[s]);
-            vis.legend.append("text")
+            legendItem.append("text")
                 .attr("x", 20)
-                .attr("y", i * 20 + 10)
+                .attr("y", 10)
                 .text(s)
                 .attr("font-size", "12px")
                 .attr("alignment-baseline", "middle");
@@ -111,6 +131,7 @@ class PriceChart {
 
     wrangleData() {
         let vis = this;
+        // Only include services that are active in activeServices
         vis.services = [...new Set(vis.streamingData.map(d => d.service))];
         vis.displayData = d3.group(vis.streamingData, d => d.service);
         let ticketFormatted = [];
@@ -139,17 +160,25 @@ class PriceChart {
         } else {
             vis.xAxis.tickFormat(d3.timeFormat("%Y"));
         }
+        // Filter displayData to include only active services
+        let filteredData = [];
+        for (let [key, values] of vis.displayData) {
+            if (vis.activeServices.has(key)) {
+                filteredData.push(values);
+            }
+        }
         vis.line = d3.line()
             .x(d => vis.x(d.date))
             .y(d => vis.y(d.price));
         let paths = vis.svg.selectAll(".price-path")
-            .data(vis.displayData.values());
+            .data(filteredData, d => d[0].service);
         paths.enter().append("path")
             .attr("class", "price-path")
             .merge(paths)
+            // Set thicker lines (e.g., stroke-width: 3)
             .attr("fill", "none")
             .attr("stroke", d => vis.colours[d[0].service])
-            .attr("stroke-width", 1.5)
+            .attr("stroke-width", 3)
             .attr("d", vis.line);
         paths.exit().remove();
         vis.svg.select(".y-axis").call(vis.yAxis);
@@ -173,6 +202,7 @@ class PriceChart {
                 let xDate = vis.x.invert(xPos);
                 let tooltipStrings = [];
                 for (let key of vis.displayData.keys()) {
+                    if (!vis.activeServices.has(key)) continue;
                     let arr = vis.displayData.get(key);
                     arr.sort((a, b) => a.date - b.date);
                     let index = bisectDate(arr, xDate);
